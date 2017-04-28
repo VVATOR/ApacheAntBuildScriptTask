@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ====================================================================== 
+     project    ApacheAntBuildScripttask 
+     description Apache Ant Build Script                    
+     vikhliayeu                                                                
+     ====================================================================== -->
+<project name="project" default="default">
+	<description>
+		Apache Ant Build Script 
+    </description>
+
+	<property name="action.start" value="start" />
+	<property name="action.stop" value="stop" />
+	<property name="log.file" value="${basedir}/../build.log" />
+	<property name="timestamp.format" value="dd.MM.yyyy hh:mm:ss" />
+
+	<property name="directory.in" value="in" />
+	<property name="directory.out" value="out" />
+	<property name="directory.temp" value="temp" />
+	<property name="zip.filename" value="package.zip" />
+
+	<property name="ext.zip" value="*.zip" />
+	<property name="ext.xml" value="*.xml" />
+	<property name="ext.html" value="*.html" />
+	<property name="ext.xhtml" value="*.xhtml" />
+
+	<!-- ================================= 
+	        filesets &  macrodef              
+	         ================================= -->
+	<fileset id="filesetZipInTemp" dir="${directory.temp}">
+		<include name="${ext.zip}" />
+	</fileset>
+
+	<macrodef name="timestamp.now">
+		<attribute name="action" />
+		<sequential>
+			<tstamp>
+				<format pattern="${timestamp.format}" property="time" />
+			</tstamp>
+			<echo>${time} - @{action}</echo>
+		</sequential>
+	</macrodef>
+
+	<macrodef name="log.start">
+		<attribute name="targetName" />
+		<sequential>
+			<record action="${action.start}" name="${log.file}" />
+			<timestamp.now action="@{targetName} - ${action.start}" />
+		</sequential>
+	</macrodef>
+
+	<macrodef name="log.stop">
+		<attribute name="targetName" />
+		<sequential>
+			<timestamp.now action="@{targetName} - ${action.stop}" />
+			<record action="${action.stop}" name="${log.file}" />
+		</sequential>
+	</macrodef>
+
+	<!-- ================================= 
+          target: default              
+         ================================= -->
+	<target name="default" depends="clean,copyFromInToTemp,unpackZipWithoutStructure,removeZipFromTemp,copyZipToOut" description="default terget">
+		<log.start targetName="${ant.project.invoked-targets}" />
+		<echo>default target</echo>
+		<log.stop targetName="${ant.project.invoked-targets}" />
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+	          target:  independend                     
+	         - - - - - - - - - - - - - - - - - -->
+	<target name="deleteFolders" description="delete all folder">
+		<log.start targetName="deleteFolders" />
+		<delete dir="${directory.in}" />
+		<delete dir="${directory.out}" />
+		<delete dir="${directory.temp}" />
+		<echo>folders "${directory.in}" / "${directory.out}" / "${directory.temp}" is deleted</echo>
+		<log.stop targetName="deleteFolders" />
+	</target>
+
+	<target name="create" depends="deleteFolders" description="create  folders structure">
+		<log.start targetName="create" />
+		<mkdir dir="${directory.in}" />
+		<mkdir dir="${directory.out}" />
+		<mkdir dir="${directory.temp}" />
+		<echo>folders "${directory.in}" / "${directory.out}" / "${directory.temp}" is created</echo>
+		<log.stop targetName="create" />
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - 
+	          target: depends                      
+	         - - - - - - - - - - - - - - - - - -->
+	<target name="copyFromInToTemp"  description="copy files with zip, xml, html, xhtml extensions from in to temp folder">
+		<log.start targetName="copyFromInToTemp" />
+		<copy todir="${directory.temp}">
+			<fileset dir="${directory.in}">
+				<include name="${ext.zip}" />
+				<include name="${ext.xml}" />
+				<include name="${ext.html}" />
+				<include name="${ext.xhtml}" />
+			</fileset>
+		</copy>
+		<log.stop targetName="copyFromInToTemp" />
+	</target>
+
+	<target name="unpackZipWithoutStructure" description="target for zip  unpack">
+		<log.start targetName="unpackZipWithoutStructure" />
+		<unzip src="zip_1.zip" dest="${directory.temp}">
+			<flattenmapper />
+			<fileset refid="filesetZipInTemp" />
+			<patternset includes="**/*.xml **/*.xhtml **/*.html **/*.png" />
+		</unzip>
+		<log.stop targetName="unpackZipWithoutStructure" />
+	</target>
+
+	<target name="removeZipFromTemp" description="remove zip files from temp folder">
+		<log.start targetName="removeZipFromTemp" />
+		<delete>
+			<fileset refid="filesetZipInTemp" />
+		</delete>
+		<echo>removed zip package from temp folder</echo>				
+		<log.stop targetName="removeZipFromTemp" />
+	</target>
+
+	<!-- - - - - - - - - - - - - - - - - - -->
+	<target name="copyZipToOut" depends="packXmlHtmlXhtml" description="copy packed zip to out folder">
+		<log.start targetName="copyZipToOut" />
+		<copy todir="${directory.out}">
+			<fileset dir="${directory.temp}">
+				<include name="${zip.filename}" />
+			</fileset>
+		</copy>
+		<echo>zip package is copied to out folder</echo>		
+		<log.stop targetName="copyZipToOut" />
+	</target>
+
+	<target name="packXmlHtmlXhtml" description="create zip package">
+		<log.start targetName="packXmlHtmlXhtml" />
+		<zip destfile="${directory.out}/${zip.filename}">
+			<fileset dir="${directory.temp}">
+				<include name="${ext.xml}" />
+				<include name="${ext.html}" />
+				<include name="${ext.xhtml}" />
+			</fileset>
+		</zip>
+		<echo>list of xml, html, xhtml files in temp folder is packed to zip</echo>
+		<log.stop targetName="packXmlHtmlXhtml" />
+	</target>
+	<!-- - - - - - - - - - - - - - - - - - -->
+
+	<target name="clean" description="clean temp folder">
+		<log.start targetName="clean" />
+		<delete>
+			<fileset dir="${directory.temp}">
+				<include name="*" />
+			</fileset>
+		</delete>
+		<echo>${directory.temp} folder is clean </echo>
+		<log.stop targetName="clean" />
+	</target>
+</project>
